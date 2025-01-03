@@ -12,6 +12,7 @@
 #include <trace/hooks/vendor_hooks.h>
 
 struct dma_buf_sysfs_entry;
+
 DECLARE_RESTRICTED_HOOK(android_rvh_dma_buf_stats_teardown,
 	TP_PROTO(struct dma_buf_sysfs_entry *sysfs_entry, bool *skip_sysfs_release),
 	TP_ARGS(sysfs_entry, skip_sysfs_release), 1);

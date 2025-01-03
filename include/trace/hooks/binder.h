@@ -19,6 +19,7 @@ struct binder_transaction;
 struct binder_transaction_data;
 struct binder_work;
 struct binder_buffer;
+struct rb_node;
 #else
 /* struct binder_alloc */
 #include <../drivers/android/binder_alloc.h>
@@ -144,6 +145,16 @@ DECLARE_HOOK(android_vh_binder_buffer_release,
 	TP_PROTO(struct binder_proc *proc, struct binder_thread *thread,
 		struct binder_buffer *buffer, bool has_transaction),
 	TP_ARGS(proc, thread, buffer, has_transaction));
+DECLARE_HOOK(android_vh_binder_find_desc,
+	TP_PROTO(struct binder_proc *proc, uint32_t *ref_desc,
+		struct rb_node *nd_desc, bool *loop),
+	TP_ARGS(proc, ref_desc, nd_desc, loop));
+DECLARE_HOOK(android_vh_binder_set_desc_bit,
+	TP_PROTO(struct binder_proc *proc, uint32_t ref_desc),
+	TP_ARGS(proc, ref_desc));
+DECLARE_HOOK(android_vh_binder_desc_init,
+	TP_PROTO(struct binder_proc *proc),
+	TP_ARGS(proc));
 /* macro versions of hooks are no longer required */
 
 #endif /* _TRACE_HOOK_BINDER_H */
