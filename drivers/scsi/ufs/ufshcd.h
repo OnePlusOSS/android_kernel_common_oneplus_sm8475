@@ -955,7 +955,7 @@ struct ufs_hba {
 	struct dentry *debugfs_root;
 #endif
 
-	ANDROID_KABI_RESERVE(1);
+	ANDROID_KABI_RESERVE(1); /* user for wb_mutex bugfix */
 	ANDROID_KABI_RESERVE(2);
 	ANDROID_KABI_RESERVE(3);
 	ANDROID_KABI_RESERVE(4);
@@ -1321,6 +1321,18 @@ static inline int ufshcd_vops_pwr_change_notify(struct ufs_hba *hba,
 					dev_max_params, dev_req_params);
 
 	return -ENOTSUPP;
+}
+
+static inline void ufshcd_vops_setup_xfer_req(struct ufs_hba *hba, int tag,
+					bool is_scsi_cmd)
+{
+	if (hba->vops && hba->vops->setup_xfer_req) {
+		unsigned long flags;
+
+		spin_lock_irqsave(hba->host->host_lock, flags);
+		hba->vops->setup_xfer_req(hba, tag, is_scsi_cmd);
+		spin_unlock_irqrestore(hba->host->host_lock, flags);
+	}
 }
 
 static inline void ufshcd_vops_setup_task_mgmt(struct ufs_hba *hba,

@@ -5,7 +5,6 @@
   add_device_randomness
   add_memory
   add_memory_subsection
-  address_space_init_once
   add_swap_extent
   add_taint
   add_timer
@@ -65,8 +64,6 @@
   bio_add_pc_page
   bio_alloc_bioset
   bio_associate_blkg_from_css
-  __bio_crypt_clone
-  bio_crypt_set_ctx
   bio_endio
   bio_put
   bio_reset
@@ -92,7 +89,6 @@
   blk_execute_rq_nowait
   blk_get_request
   blk_mq_free_request
-  blk_mq_queue_inflight
   blk_mq_rq_cpu
   blk_mq_sched_mark_restart_hctx
   blk_mq_start_request
@@ -413,7 +409,6 @@
   dev_fwnode
   __dev_get_by_index
   dev_get_by_index
-  dev_get_by_index_rcu
   dev_get_by_name
   dev_get_regmap
   dev_get_stats
@@ -1667,9 +1662,7 @@
   net_ratelimit
   nf_ct_attach
   nf_ct_delete
-  nf_register_net_hook
   nf_register_net_hooks
-  nf_unregister_net_hook
   nf_unregister_net_hooks
   nla_find
   nla_memcpy
@@ -2015,7 +2008,6 @@
   preempt_schedule_notrace
   prepare_to_wait
   prepare_to_wait_event
-  prepare_to_wait_exclusive
   print_hex_dump
   printk
   printk_deferred
@@ -2057,12 +2049,10 @@
   qcom_smem_state_update_bits
   queue_delayed_work_on
   queue_work_on
-  radix_tree_delete_item
   radix_tree_gang_lookup
   radix_tree_insert
   radix_tree_iter_delete
   radix_tree_lookup
-  radix_tree_lookup_slot
   radix_tree_next_chunk
   radix_tree_preload
   radix_tree_replace_slot
@@ -2303,8 +2293,6 @@
   rtc_update_irq
   rtc_valid_tm
   rtnl_is_locked
-  __rtnl_link_register
-  __rtnl_link_unregister
   rtnl_lock
   rtnl_unlock
   runqueues
@@ -2971,6 +2959,9 @@
   __traceiter_task_rename
   __traceiter_xhci_urb_giveback
   __traceiter_android_vh_binder_proc_transaction_finish
+  __traceiter_android_vh_binder_find_desc
+  __traceiter_android_vh_binder_set_desc_bit
+  __traceiter_android_vh_binder_desc_init
   __traceiter_android_vh_alloc_oem_binder_struct
   __traceiter_android_vh_binder_transaction_received
   __traceiter_android_vh_free_oem_binder_struct
@@ -3232,6 +3223,9 @@
   __tracepoint_netif_receive_skb
   __tracepoint_netif_rx
   __tracepoint_pelt_se_tp
+  __tracepoint_android_vh_binder_find_desc
+  __tracepoint_android_vh_binder_set_desc_bit
+  __tracepoint_android_vh_binder_desc_init
   tracepoint_probe_register
   tracepoint_probe_register_prio
   tracepoint_probe_unregister
@@ -3321,9 +3315,6 @@
   ucsi_set_drvdata
   ucsi_unregister
   __udelay
-  __udp4_lib_lookup
-  __udp6_lib_lookup
-  udp_table
   ufshcd_auto_hibern8_update
   ufshcd_delay_us
   ufshcd_dme_get_attr

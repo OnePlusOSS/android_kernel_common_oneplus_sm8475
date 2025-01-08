@@ -1144,6 +1144,34 @@ static int ufshcd_scale_gear(struct ufs_hba *hba, bool scale_up)
 	return ret;
 }
 
+static void ufshcd_wb_mutex_lock(struct ufs_hba *hba)
+{
+	if (!hba->android_kabi_reserved1)
+		return;
+	mutex_lock((struct mutex *)(hba->android_kabi_reserved1));
+}
+
+static void ufshcd_wb_mutex_unlock(struct ufs_hba *hba)
+{
+	if (!hba->android_kabi_reserved1)
+		return;
+	mutex_unlock((struct mutex *)(hba->android_kabi_reserved1));
+}
+
+static void ufshcd_init_wb_mutex(struct ufs_hba *hba)
+{
+	hba->android_kabi_reserved1 = (u64)kzalloc(sizeof(struct mutex), GFP_KERNEL);
+	if (hba->android_kabi_reserved1)
+		mutex_init((struct mutex *)(hba->android_kabi_reserved1));
+}
+
+static void ufshcd_exit_wb_mutex(struct ufs_hba *hba)
+{
+	if (hba->android_kabi_reserved1)
+		kfree((struct mutex *)(hba->android_kabi_reserved1));
+	hba->android_kabi_reserved1 = 0;
+}
+
 static int ufshcd_clock_scaling_prepare(struct ufs_hba *hba)
 {
 	#define DOORBELL_CLR_TOUT_US		(1000 * 1000) /* 1 sec */
@@ -1153,12 +1181,14 @@ static int ufshcd_clock_scaling_prepare(struct ufs_hba *hba)
 	 * clock scaling is in progress
 	 */
 	ufshcd_scsi_block_requests(hba);
+	ufshcd_wb_mutex_lock(hba);
 	down_write(&hba->clk_scaling_lock);
 
 	if (!hba->clk_scaling.is_allowed ||
 	    ufshcd_wait_for_doorbell_clr(hba, DOORBELL_CLR_TOUT_US)) {
 		ret = -EBUSY;
 		up_write(&hba->clk_scaling_lock);
+		ufshcd_wb_mutex_unlock(hba);
 		ufshcd_scsi_unblock_requests(hba);
 		goto out;
 	}
@@ -1170,12 +1200,15 @@ out:
 	return ret;
 }
 
-static void ufshcd_clock_scaling_unprepare(struct ufs_hba *hba, bool writelock)
+static void ufshcd_clock_scaling_unprepare(struct ufs_hba *hba, bool scale_up)
 {
-	if (writelock)
-		up_write(&hba->clk_scaling_lock);
-	else
-		up_read(&hba->clk_scaling_lock);
+	up_write(&hba->clk_scaling_lock);
+
+	/* Enable Write Booster if we have scaled up else disable it */
+	ufshcd_wb_ctrl(hba, scale_up);
+
+	ufshcd_wb_mutex_unlock(hba);
+
 	ufshcd_scsi_unblock_requests(hba);
 	ufshcd_release(hba);
 }
@@ -1192,7 +1225,6 @@ static void ufshcd_clock_scaling_unprepare(struct ufs_hba *hba, bool writelock)
 static int ufshcd_devfreq_scale(struct ufs_hba *hba, bool scale_up)
 {
 	int ret = 0;
-	bool is_writelock = true;
 
 	ret = ufshcd_clock_scaling_prepare(hba);
 	if (ret)
@@ -1221,13 +1253,8 @@ static int ufshcd_devfreq_scale(struct ufs_hba *hba, bool scale_up)
 		}
 	}
 
-	/* Enable Write Booster if we have scaled up else disable it */
-	downgrade_write(&hba->clk_scaling_lock);
-	is_writelock = false;
-	ufshcd_wb_ctrl(hba, scale_up);
-
 out_unprepare:
-	ufshcd_clock_scaling_unprepare(hba, is_writelock);
+	ufshcd_clock_scaling_unprepare(hba, scale_up);
 	return ret;
 }
 
@@ -4028,8 +4055,7 @@ out:
 		ufshcd_enable_intr(hba, UIC_COMMAND_COMPL);
 	if (ret) {
 		dev_err(hba->dev,
-			"%s: Changing link power status failed (%d). Scheduling error handler\n",
-			__func__, ret);
+			"%s: Changing link power status failed (%d). Scheduling error handler\n", __func__, ret);
 		ufshcd_set_link_broken(hba);
 		ufshcd_schedule_eh_work(hba);
 	}
@@ -5905,9 +5931,11 @@ static inline void ufshcd_schedule_eh_work(struct ufs_hba *hba)
 
 static void ufshcd_clk_scaling_allow(struct ufs_hba *hba, bool allow)
 {
+	ufshcd_wb_mutex_lock(hba);
 	down_write(&hba->clk_scaling_lock);
 	hba->clk_scaling.is_allowed = allow;
 	up_write(&hba->clk_scaling_lock);
+	ufshcd_wb_mutex_unlock(hba);
 }
 
 static void ufshcd_clk_scaling_suspend(struct ufs_hba *hba, bool suspend)
@@ -8496,6 +8524,7 @@ out:
 static void ufshcd_hba_exit(struct ufs_hba *hba)
 {
 	if (hba->is_powered) {
+		ufshcd_exit_wb_mutex(hba);
 		ufshcd_exit_clk_scaling(hba);
 		ufshcd_exit_clk_gating(hba);
 		if (hba->eh_wq)
@@ -9400,6 +9429,8 @@ int ufshcd_init(struct ufs_hba *hba, void __iomem *mmio_base, unsigned int irq)
 	/* Initialize mutex for device management commands */
 	mutex_init(&hba->dev_cmd.lock);
 
+	/* init wb_mutex */
+	ufshcd_init_wb_mutex(hba);
 	init_rwsem(&hba->clk_scaling_lock);
 
 	ufshcd_init_clk_gating(hba);

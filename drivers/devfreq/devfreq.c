@@ -444,6 +444,7 @@ static void devfreq_monitor(struct work_struct *work)
 	queue_delayed_work(devfreq_wq, &devfreq->work,
 				msecs_to_jiffies(devfreq->profile->polling_ms));
 
+
 out:
 	mutex_unlock(&devfreq->lock);
 	trace_devfreq_monitor(devfreq);
